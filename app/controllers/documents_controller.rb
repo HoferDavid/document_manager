@@ -1,12 +1,15 @@
 class DocumentsController < ApplicationController
-  before_action :set_document, only: %i[ show edit update destroy ]
+  # Ensure user is authenticated before any action
+  before_action :authenticate_user!
+  # Load and authorize resources using CanCanCan
+  load_and_authorize_resource
 
-  # GET /documents or /documents.json
+  # GET /documents
   def index
     @documents = Document.all
   end
 
-  # GET /documents/1 or /documents/1.json
+  # GET /documents/1
   def show
   end
 
@@ -19,52 +22,37 @@ class DocumentsController < ApplicationController
   def edit
   end
 
-  # POST /documents or /documents.json
+  # POST /documents
   def create
     @document = Document.new(document_params)
+    @document.user = current_user # Associate document with the current user
 
-    respond_to do |format|
-      if @document.save
-        format.html { redirect_to @document, notice: "Document was successfully created." }
-        format.json { render :show, status: :created, location: @document }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @document.errors, status: :unprocessable_entity }
-      end
+    if @document.save
+      redirect_to @document, notice: "Document was successfully created."
+    else
+      render :new, status: :unprocessable_entity
     end
   end
 
-  # PATCH/PUT /documents/1 or /documents/1.json
+  # PATCH/PUT /documents/1
   def update
-    respond_to do |format|
-      if @document.update(document_params)
-        format.html { redirect_to @document, notice: "Document was successfully updated." }
-        format.json { render :show, status: :ok, location: @document }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @document.errors, status: :unprocessable_entity }
-      end
+    if @document.update(document_params)
+      redirect_to @document, notice: "Document was successfully updated."
+    else
+      render :edit, status: :unprocessable_entity
     end
   end
 
-  # DELETE /documents/1 or /documents/1.json
+  # DELETE /documents/1
   def destroy
-    @document.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to documents_path, status: :see_other, notice: "Document was successfully destroyed." }
-      format.json { head :no_content }
-    end
+    @document.destroy
+    redirect_to documents_url, notice: "Document was successfully destroyed."
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_document
-      @document = Document.find(params.expect(:id))
-    end
 
-    # Only allow a list of trusted parameters through.
-    def document_params
-      params.expect(document: [ :title, :description, :user_id ])
-    end
+  # Only allow a list of trusted parameters through
+  def document_params
+    params.require(:document).permit(:title, :description, :file)
+  end
 end
